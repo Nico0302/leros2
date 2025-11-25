@@ -9,9 +9,11 @@ A [LeRobot robot](https://github.com/huggingface/lerobot/blob/main/src/lerobot/r
 A ROS 2 LeRobot robot consists of *components* that subscribe to topics and publish ROS 2 messages.
 
 ```yaml
+# file: ur12e_robot_config.yaml
+
 id: ur12e
 components:
-    arm:  # you can choose your own component name e.g. arm, gripper, arm_left
+    arm:  # you can choose your own component name e.g. arm, gripper, left_arm
         type: joint_trajectory
         joint_trajectory_topic: "scaled_joint_trajectory_topic/joint_trajectory"
         joints:
@@ -23,6 +25,7 @@ components:
             wrist_1_joint: {}
             wrist_2_joint: {}
             wrist_3_joint: {}
+    gripper: ...
 ```
 
 ## Teleoperator
@@ -37,7 +40,7 @@ You can use the `JointStateComponent` to read joints from a leader arm or the `P
 *Passive* teleportation decouples LeRobot from the teleportation loop. The robot can be directly controlled by a ROS 2 node which also publishes the control actions to a ROS 2 topic. This allows the use of a low latency leader follower setup with force feedback or a VR controlled end-effector teleportation with MoveIt and the `JointTrajectoryControllerStateComponent`. \
 The *passive* mode can be enabled by configuring the robot during dataset recording:
 ```bash
-lerobot-teleoperate --robot.passive=true
+lerobot-record --robot.passive=true
 ```
 
 

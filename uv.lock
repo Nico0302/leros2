@@ -16,7 +16,7 @@ members = [
     "lerobot-robot-ros2",
     "lerobot-robot-ure",
     "lerobot-teleoperator-ros2",
-    "ros2-lerobot",
+    "leros2",
 ]
 
 [[package]]
@@ -994,6 +994,17 @@ requires-dist = [
     { name = "lerobot" },
     { name = "lerobot-common-ros2", editable = "common" },
 ]
+
+[[package]]
+name = "leros2"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "black" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "black", specifier = ">=25.11.0" }]
 
 [[package]]
 name = "markupsafe"
@@ -2440,17 +2451,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f5/86/0b9c8f56398b4fc85f8e99279907c258413a297e5603f8f2537fe5806e51/rerun_sdk-0.26.2-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:a6f97b60aaa7d4e8c6124a3f6b97ce9dbd09520050955f0e0bdacb72b0eb106a", size = 98768129, upload-time = "2025-10-27T11:34:27.36Z" },
     { url = "https://files.pythonhosted.org/packages/be/e7/99fc91c0f99f69d7d43e1db0a6f6cb8273ffc02111539bfc1fee43749bad/rerun_sdk-0.26.2-cp39-abi3-win_amd64.whl", hash = "sha256:a493ad6c8357022cba2ca6f8954a81d0faf984b0b22154eb1d976bfc7649df63", size = 84267089, upload-time = "2025-10-27T11:34:32.023Z" },
 ]
-
-[[package]]
-name = "ros2-lerobot"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "black" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "black", specifier = ">=25.11.0" }]
 
 [[package]]
 name = "safetensors"
