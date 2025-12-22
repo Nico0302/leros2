@@ -41,6 +41,15 @@ class JointStateComponentConfig(Protocol):
     joint_state_topic: str = "joint_state"
 
 
+class PoseStampedSubscriptionComponentConfig(Protocol):
+    """Configuration for a pose level control component."""
+
+    # Name of the component
+    name: str = "end_effector"
+
+    # ROS 2 topic to read the current pose
+    pose_stamped_topic: str = "pose_stamped"
+
 class ROS2CommonConfig(Protocol[T]):
     """Configuration for ROS 2 common features."""
 

@@ -52,35 +52,3 @@ services:
       rtprio: 99
       rttime: -1
       memlock: 8428281856
-
-  ursim:
-    image: universalrobots/ursim_polyscopex:latest
-    privileged: true
-    ports:
-      - 8000:80
-      - 30001:30001
-      - 30011:30011
-      - 30002:30002
-      - 30012:30012
-      - 30004:30004
-      - 30014:30014
-
-    networks:
-      ursim_net:
-        ipv4_address: 192.168.56.101
-
-    environment:
-      - HOST_ARCH=arm64
-      - ROBOT_TYPE=UR12e
-    volumes:
-      - ursim_data:/ur/bin/backend/applications
-
-volumes:
-  ursim_data:
-
-networks:
-  ursim_net:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.56.0/24

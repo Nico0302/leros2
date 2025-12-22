@@ -19,8 +19,8 @@ components:
         joints:
             shoulder_pan_joint: {}
             shoulder_lift_joint:
-                range_min: -1,5707963268 # -PI/2
-                range_max: 1,5707963268 # PI/2
+                range_min: -1.5707963268 # -PI/2
+                range_max: 1.5707963268 # PI/2
             elbow_joint: {}
             wrist_1_joint: {}
             wrist_2_joint: {}

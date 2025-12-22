@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from typing import Any
-from lerobot_teleoperator_ros2.config_ros2_teleoperator import (
-    PoseStampedConfig,
+from lerobot_common_ros2.config_ros2_common import (
+    PoseStampedSubscriptionComponentConfig,
 )
 from .common import BaseComponent
 from rclpy.node import Node
@@ -23,12 +23,12 @@ from lerobot.utils.rotation import Rotation
 import numpy as np
 
 
-class PoseStampedComponent(BaseComponent):
+class PoseStampedSubscriptionComponent(BaseComponent):
     """
     Retrieves pose stamped information from a ROS 2 topic.
     """
 
-    def __init__(self, config: PoseStampedConfig):
+    def __init__(self, config: PoseStampedSubscriptionComponentConfig):
         self.config = config
 
         self.node: Node | None = None
@@ -58,21 +58,21 @@ class PoseStampedComponent(BaseComponent):
         self._pose_stamped = msg
 
     @property
-    def action_features(self) -> dict:
-        """Get the action features provided by this component.
+    def get_pose_features(self) -> dict:
+        """Get the pose features provided by this component.
         Returns:
-            dict: The action features.
+            dict: The pose features.
         """
         return {
             f"{self.config.name}.pos": np.ndarray,  # shape (3,)
             f"{self.config.name}.rot": Rotation,  # quaternion
         }
 
-    def get_action(self) -> dict[str, Any]:
-        """Get the current joint states from the robot.
+    def get_pose(self) -> dict[str, Any]:
+        """Get the current pose from the robot.
 
         Returns:
-            dict[str, Any]: The current joint states.
+            dict[str, Any]: The current pose.
         """
         if self._pose_stamped is None:
             return {}
@@ -96,10 +96,3 @@ class PoseStampedComponent(BaseComponent):
                 )
             ),
         }
-
-    @property
-    def feedback_features(self) -> dict:
-        return {}
-
-    def send_feedback(self, feedback: dict[str, Any]) -> None:
-        pass

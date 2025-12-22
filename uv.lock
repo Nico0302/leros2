@@ -12,6 +12,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "lerobot-camera-ros2",
     "lerobot-common-ros2",
     "lerobot-robot-ros2",
     "lerobot-robot-ure",
@@ -950,14 +951,19 @@ wheels = [
 ]
 
 [[package]]
+name = "lerobot-camera-ros2"
+version = "0.1.0"
+source = { editable = "packages/camera" }
+
+[[package]]
 name = "lerobot-common-ros2"
 version = "0.1.0"
-source = { editable = "common" }
+source = { editable = "packages/common" }
 
 [[package]]
 name = "lerobot-robot-ros2"
 version = "0.1.0"
-source = { editable = "robot" }
+source = { editable = "packages/robot" }
 dependencies = [
     { name = "lerobot" },
     { name = "lerobot-common-ros2" },
@@ -966,7 +972,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "lerobot" },
-    { name = "lerobot-common-ros2", editable = "common" },
+    { name = "lerobot-common-ros2", editable = "packages/common" },
 ]
 
 [[package]]
@@ -978,12 +984,12 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "lerobot-robot-ros2", editable = "robot" }]
+requires-dist = [{ name = "lerobot-robot-ros2", editable = "packages/robot" }]
 
 [[package]]
 name = "lerobot-teleoperator-ros2"
 version = "0.1.0"
-source = { editable = "teleoperator" }
+source = { editable = "packages/teleoperator" }
 dependencies = [
     { name = "lerobot" },
     { name = "lerobot-common-ros2" },
@@ -992,7 +998,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "lerobot" },
-    { name = "lerobot-common-ros2", editable = "common" },
+    { name = "lerobot-common-ros2", editable = "packages/common" },
 ]
 
 [[package]]

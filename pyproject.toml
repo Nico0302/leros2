@@ -9,4 +9,4 @@ dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["examples/*", "common", "robot", "teleoperator"]
+members = ["examples/*", "packages/*"]

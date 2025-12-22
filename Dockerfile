@@ -13,9 +13,6 @@ ARG USER_PASSWORD=ros
 # Disable dpkg/gdebi interactive dialogs
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=all
-
 SHELL ["/bin/bash", "-c"]
 
 # Delete existing user if it exists
@@ -66,6 +63,9 @@ RUN apt-get update && \
     python3-colcon-common-extensions
 
 FROM base AS workspace
+
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=all
 
 ENV ROS_DISTRO=${ROS_DISTRO}
 

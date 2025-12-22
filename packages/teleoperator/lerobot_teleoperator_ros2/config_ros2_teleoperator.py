@@ -21,7 +21,7 @@ from lerobot_common_ros2 import JointConfig
 
 
 @dataclass
-class JointTrajectoryControllerStateConfig:
+class JointTrajectoryControllerStateComponentConfig:
     """
     Configuration for the Joint Trajectory Controller State component.
 
@@ -38,7 +38,7 @@ class JointTrajectoryControllerStateConfig:
 
 
 @dataclass
-class JointStateConfig:
+class JointStateComponentConfig:
     """
     Configuration for the Joint State component.
 
@@ -55,7 +55,7 @@ class JointStateConfig:
 
 
 @dataclass
-class PoseStampedConfig:
+class PoseStampedComponentConfig:
     """
     Configuration for the Pose Stamped component.
 
@@ -64,6 +64,7 @@ class PoseStampedConfig:
 
     type: Literal["pose_stamped"]
 
+    # Name of the component
     name: str = "end_effector"
 
     # ROS 2 topic to read the desired end-effector pose
@@ -79,7 +80,7 @@ class ROS2TeleoperatorConfig(TeleoperatorConfig, Generic[C]):
 
     components: dict[
         str,
-        JointTrajectoryControllerStateConfig | JointStateConfig | PoseStampedConfig | C,
+        JointTrajectoryControllerStateComponentConfig | JointStateComponentConfig | PoseStampedComponentConfig | C,
     ] = field(default_factory=dict)
 
     node_name: str = "lerobot_teleoperator"
