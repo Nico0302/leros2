@@ -109,4 +109,24 @@ A teleoperator can simply extend the `ROS2Teleoperator` class and initilize all 
 
 ## `rosbag2` Conversion
 
-This package provides a `rosbag2` converter to convert ROS 2 bag files to LeRobot datasets. 
+This package provides a `rosbag2` converter to convert ROS 2 bag files to LeRobot datasets. It behaves similar to the `lerobot-record` command-line tool and accepts all robots and teleoperators that extends the `ROS2Robot` and `ROS2Teleoperator` classes respectively.
+
+To allow the synchronization of the robot and teleoperator actions a `clock_topic` should be specified. 
+
+> [!IMPORTANT]
+> Make sure your camera topic publish frequency and dataset FPS are the same. Ideally the camera topic should be used as the clock topic to allign properioceptive and image observations.
+
+### Multi Episode Example
+
+If multiple episodes are performed during the recording a `task_topic` should be specified. After each string message published with the tasked description the converter will create a new episode.
+
+```shell
+leros2-convert \
+    --robot.type=ure \
+    --dataset.repo_id=<my_username>/<my_dataset_name> \
+    --input_bag=/path/to/your/rosbag \
+    --task_topic=/task \
+    --clock_topic=/camera/image_raw \
+    --teleop.type=ure \
+    --teleop.id=blue
+```

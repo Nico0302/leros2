@@ -15,3 +15,4 @@
 from .base import BaseComponent, BaseComponentConfig
 from .action import ActionComponent, ActionComponentConfig
 from .state import StateComponent, StateComponentConfig
+from .base_image import ImageBaseComponent, ImageBaseComponentConfig

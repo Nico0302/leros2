@@ -12,16 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 from typing import Any
-from leros2.components.common.state import StateComponent
-
+from leros2.components.common.base_image import ImageBaseComponent
 from cv_bridge import CvBridge
 from leros2.components.image import ImageComponentConfig
 from sensor_msgs.msg import CompressedImage
 
 
-class CompressedImageComponent(StateComponent[ImageComponentConfig, CompressedImage]):
-    def __init__(self, config: ImageComponentConfig):
+@dataclass
+class CompressedImageComponentConfig(ImageComponentConfig):
+    pass
+
+
+class CompressedImageComponent(
+    ImageBaseComponent[CompressedImageComponentConfig, CompressedImage]
+):
+    """Adapter for converting a compressed image to state features."""
+
+    def __init__(self, config: CompressedImageComponentConfig):
         super().__init__(config, CompressedImage)
 
         self.bridge = CvBridge()

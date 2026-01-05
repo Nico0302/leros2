@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from leros2.components.common import StateComponent, StateComponentConfig
+from leros2.components.common import ImageBaseComponent, ImageBaseComponentConfig
 from sensor_msgs.msg import Image
 from typing import Any
 import numpy as np
@@ -20,23 +20,15 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ImageComponentConfig(StateComponentConfig):
-    """Configuration for the image component."""
-
-    name: str
-    width: int
-    height: int
+class ImageComponentConfig(ImageBaseComponentConfig):
+    pass
 
 
-class ImageComponent(StateComponent[ImageComponentConfig, Image]):
+class ImageComponent(ImageBaseComponent[ImageComponentConfig, Image]):
     """Adapter for converting an image to state features."""
 
     def __init__(self, config: ImageComponentConfig):
         super().__init__(config, Image)
-
-    @property
-    def features(self) -> dict[str, tuple[int, int, int]]:
-        return {self._config.name: (self._config.height, self._config.width, 3)}
 
     def to_value(self, msg: Image) -> dict[str, Any]:
         return {

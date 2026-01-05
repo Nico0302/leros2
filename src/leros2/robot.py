@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from leros2.components.common.base_image import ImageBaseComponent
 
 import logging
 import copy
@@ -129,3 +130,10 @@ class ROS2Robot(ROS2Common[ROS2RobotConfig, StateComponent | ActionComponent], R
     @cameras.setter
     def cameras(self, value):
         self._cameras = value
+
+    @property
+    def image_feature_count(self) -> int:
+        return len(self.cameras) + sum(
+            1 if isinstance(component, ImageBaseComponent) else 0
+            for component in self._components
+        )
