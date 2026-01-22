@@ -4,11 +4,15 @@ robot:
 teleop:
   type: pose
 
-# task_topic: /lerobot_task
+task_topic: /lerobot_task
+
+event_topic: /lerobot_event
+
+bag_path: ../../../bags/lerobot_bag_2026_01_22-14_37_09
 
 dataset:
-  repo_id: "ngres/leros2-test"
-  single_task: "Pick the Lego block and drop it in the box on the right."
+  repo_id: "ngres/leros2-ur10e-cube"
+  single_task: "Pick up the gray plush cube and put it into the gray box."
   fps: 30
   video: true
   push_to_hub: true

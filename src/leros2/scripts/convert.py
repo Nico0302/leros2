@@ -231,6 +231,8 @@ def record_loop(
 
     has_frame = False
 
+    tasked_received = task_topic is None
+
     def deserialize_data(topic, data):
         msg_type = get_message(typename(topic, topic_types))
         return deserialize_message(data, msg_type)
@@ -250,6 +252,7 @@ def record_loop(
                         dataset.save_episode()
                         has_frame = False
                     is_recording = False
+                    tasked_received = False
                     is_saved = True
                     last_timestamp = 0
                     continue
@@ -262,7 +265,7 @@ def record_loop(
                 case _:
                     continue
 
-        if topic == task_topic and task_topic is not None:
+        if task_topic is not None and topic == task_topic:
             # receive a new task to record
             msg = deserialize_data(topic, data)
             task = msg.data
@@ -272,13 +275,13 @@ def record_loop(
                 dataset.save_episode()
                 is_saved = True
                 has_frame = False
-            is_recording = True
+            tasked_received = True
             last_timestamp = 0
             continue
 
         # only record a new frame when the clock topic is received or the FPS threshold is reached
         if not is_recording:
-            if task_topic is None and all(t in raw_topic_data for t in topics if t != event_topic):
+            if tasked_received and all(t in raw_topic_data for t in topics if t != event_topic):
                 # if no task_topic is provided, recording starts when all topics are saturated
                 is_recording = True
             else:
@@ -367,6 +370,8 @@ def record(cfg: RecordConfig) -> LeRobotDataset:
 
     dataset = None
     listener = None
+
+    print("image_feature_count", robot.image_feature_count)
 
     image_writer_threads = (
         cfg.dataset.num_image_writer_threads_per_camera * robot.image_feature_count

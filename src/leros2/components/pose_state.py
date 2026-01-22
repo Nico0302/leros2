@@ -18,7 +18,6 @@ from typing import Any
 import numpy as np
 from leros2.components.common import StateComponentConfig
 from leros2.components.common.base import BaseComponentConfig
-from scipy.spatial.transform import Rotation as R
 from dataclasses import dataclass
 
 
@@ -42,13 +41,9 @@ class PoseStateComponent(StateComponent[PoseStateComponentConfig, PoseStamped]):
             f"{self._config.name}_y.quat": float,
             f"{self._config.name}_z.quat": float,
             f"{self._config.name}_w.quat": float,
-            f"{self._config.name}_x.rot": float,
-            f"{self._config.name}_y.rot": float,
-            f"{self._config.name}_z.rot": float,
         }
 
     def to_value(self, msg: PoseStamped) -> dict[str, Any]:
-        wx, wy, wz = R.from_quat([msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w]).as_rotvec()
         return {
             f"{self._config.name}_x.pos": msg.pose.position.x,
             f"{self._config.name}_y.pos": msg.pose.position.y,
@@ -57,7 +52,4 @@ class PoseStateComponent(StateComponent[PoseStateComponentConfig, PoseStamped]):
             f"{self._config.name}_y.quat": msg.pose.orientation.y,
             f"{self._config.name}_z.quat": msg.pose.orientation.z,
             f"{self._config.name}_w.quat": msg.pose.orientation.w,
-            f"{self._config.name}_x.rot": wx,
-            f"{self._config.name}_y.rot": wy,
-            f"{self._config.name}_z.rot": wz,
         }

@@ -33,6 +33,9 @@ class JointConfig:
     # Maximum range of the joint
     range_max: float = math.pi
 
+    # Optional name of the joint in the ROS message if it deviates from the LeRobot joint name
+    ros_name: str | None = None
+
 
 @dataclass
 @BaseComponentConfig.register_subclass('joint_state')
@@ -49,14 +52,14 @@ class JointStateComponent(StateComponent[JointStateComponentConfig, JointState])
         self._joints: dict[str, JointConfig] = {}
 
         for joint in config.joints:
-            self._joints[joint.name] = joint
+            self._joints[joint.ros_name or joint.name] = joint
 
     @property
     def features(self) -> dict[str, type]:
         features: dict[str, type] = {}
 
-        for name in self._joints:
-            features[f"{name}.pos"] = float
+        for joint in self._joints.values():
+            features[f"{joint.name}.pos"] = float
 
         return features
 
@@ -68,7 +71,7 @@ class JointStateComponent(StateComponent[JointStateComponentConfig, JointState])
             if joint_config is None:
                 continue
 
-            value[f"{name}.pos"] = self._normalize_joint(
+            value[f"{joint_config.name}.pos"] = self._normalize_joint(
                 msg.position[index],
                 joint_config,
             )

@@ -25,4 +25,6 @@ class PoseConfig(ROS2TeleoperatorConfig):
 
     pose_topic: str = "/target_pose"
 
+    gripper_topic: str = "/target_gripper"
+
     

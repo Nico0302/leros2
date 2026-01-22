@@ -38,6 +38,18 @@ class Pose(ROS2Teleoperator):
         super().__init__(
             config,
             [
-                PoseStateComponent(PoseStateComponentConfig(topic=config.pose_topic, name="pose"))
+                PoseStateComponent(PoseStateComponentConfig(topic=config.pose_topic, name="pose")),
+                JointStateComponent(  # Read joint state
+                    JointStateComponentConfig(
+                        topic=config.gripper_topic, joints=[
+                            JointConfig(
+                                name="gripper",
+                                range_min=0.0,
+                                range_max=0.7929,
+                                ros_name="gripper"
+                            ),
+                        ]
+                    )
+                ),
             ],
         )

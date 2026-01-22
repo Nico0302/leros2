@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from leros2.components.pose_state import PoseStateComponent, PoseStateComponentConfig
 from leros2.components.compressed_image import CompressedImageComponent, CompressedImageComponentConfig
 
 from leros2.robot import ROS2Robot
@@ -29,33 +30,39 @@ from .config_ure import UReConfig
 
 URE_JOINTS = [
     JointConfig(
-        name="shoulder_pan_joint",
+        name="ur_shoulder_pan_joint",
         range_min=-math.pi,
         range_max=math.pi,
     ),
     JointConfig(
-        name="shoulder_lift_joint",
+        name="ur_shoulder_lift_joint",
         range_min=-math.pi / 2,
         range_max=math.pi / 2,
     ),
     JointConfig(
-        name="elbow_joint",
+        name="ur_elbow_joint",
         range_min=-math.pi,
         range_max=math.pi,
     ),
     JointConfig(
-        name="wrist_1_joint",
+        name="ur_wrist_1_joint",
         range_min=-math.pi,
         range_max=math.pi,
     ),
     JointConfig(
-        name="wrist_2_joint",
+        name="ur_wrist_2_joint",
         range_min=-math.pi,
         range_max=math.pi,
     ),
     JointConfig(
-        name="wrist_3_joint",
+        name="ur_wrist_3_joint",
         range_max=math.pi,
+    ),
+    JointConfig(
+        name="gripper",
+        range_min=0.0,
+        range_max=0.7929,
+        ros_name="robotiq_85_left_knuckle_joint"
     ),
 ]
 
@@ -67,9 +74,6 @@ class URe(ROS2Robot):
 
     def __init__(self, config: UReConfig):
         joints = URE_JOINTS.copy()
-        if config.prefix:
-            for joint in joints:
-                joint.name = f"{config.prefix}_{joint.name}"
 
         super().__init__(
             config,
@@ -88,16 +92,22 @@ class URe(ROS2Robot):
                     CompressedImageComponentConfig(
                         topic=config.base_image_topic, 
                         name="base",
-                        width=1280,
-                        height=720
+                        width=640,
+                        height=480
                     )
                 ),
                 CompressedImageComponent(
                     CompressedImageComponentConfig(
                         topic=config.wrist_image_topic, 
                         name="wrist",
-                        width=1280,
-                        height=720
+                        width=640,
+                        height=480
+                    )
+                ),
+                PoseStateComponent(
+                    PoseStateComponentConfig(
+                        topic=config.pose_state_topic,
+                        name="pose"
                     )
                 )
             ],
