@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from typing import Any
-from leros2.components.common import ActionComponent, ActionComponentConfig
+from leros2.components.common import ActionTopicComponent, ActionComponentConfig
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from leros2.components.joint_state import JointConfig
 from dataclasses import dataclass
@@ -27,7 +26,7 @@ class JointActionComponentConfig(ActionComponentConfig):
 
 
 class JointActionComponent(
-    ActionComponent[JointActionComponentConfig, JointTrajectory]
+    ActionTopicComponent[JointActionComponentConfig, JointTrajectory]
 ):
     """Adapter for converting a ROS 2 joint state message to a feature value dictionary."""
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from leros2.components.parallel_gripper_action import ParallelGripperActionComponentConfig, ParallelGripperActionComponent
 
 from leros2.components.pose_action import PoseActionComponent, PoseActionComponentConfig
 from leros2.components.pose_state import PoseStateComponent, PoseStateComponentConfig
@@ -112,7 +113,21 @@ class URe(ROS2Robot):
                 PoseActionComponent(
                     PoseActionComponentConfig(
                         topic=config.pose_action_topic,
+                        frame_id=config.pose_action_frame,
                         name="pose"
+                    )
+                ),
+                ParallelGripperActionComponent(
+                    ParallelGripperActionComponentConfig(
+                        topic=config.gripper_action_topic,
+                        joints=[
+                            JointConfig(
+                                name="gripper",
+                                range_min=0.0,
+                                range_max=0.7929,
+                                norm_min=0.0,
+                            ),
+                        ]
                     )
                 ),
                 # - or -

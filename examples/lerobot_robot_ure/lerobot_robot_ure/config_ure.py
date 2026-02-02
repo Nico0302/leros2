@@ -24,9 +24,13 @@ class UReConfig(ROS2RobotConfig):
 
     joint_state_topic: str = "/joint_states"
 
-    pose_state_topic = "/current_pose"
+    pose_state_topic: str = "/current_pose"
+
+    gripper_action_topic: str = "/robotiq_gripper_controller/gripper_cmd"
 
     pose_action_topic: str = "/target_pose"
+
+    pose_action_frame: str = "ur_base_link"
 
     wrist_image_topic: str = "/wrist_camera/color/image_raw/compressed"
 

@@ -75,6 +75,8 @@ class StateComponent(BaseComponent[StateConfigT], Generic[StateConfigT, MsgT]):
         Returns:
             The state features.
         """
+        if self._value is None:
+            raise ValueError(f"No message received on topic {self.topic}")
         return self._value
 
     def _callback(self, msg: MsgT) -> None:

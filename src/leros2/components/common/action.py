@@ -15,6 +15,7 @@
 from dataclasses import dataclass
 from abc import abstractmethod
 from typing import Any, Generic, TypeVar
+from rclpy.action import ActionClient
 from rclpy.node import Node
 
 from .base import BaseComponent, BaseComponentConfig
@@ -30,8 +31,23 @@ ActionConfigT = TypeVar("ActionConfigT", bound=ActionComponentConfig)
 MsgT = TypeVar("MsgT")
 
 
-class ActionComponent(BaseComponent[ActionConfigT], Generic[ActionConfigT, MsgT]):
-    """Adapter for converting action features to a ROS 2 message."""
+class ActionComponent(BaseComponent[ActionConfigT], Generic[ActionConfigT]):
+    """Adapter for converting action features to a ROS 2."""
+
+    def __init__(self, config: ActionConfigT):
+        super().__init__(config)
+
+    @abstractmethod
+    def send_action(self, action: dict[str, Any]) -> None:
+        """Send an action to the ROS 2 message.
+
+        Args:
+            action: The action features to send.
+        """
+        raise NotImplementedError
+
+class ActionTopicComponent(ActionComponent[ActionConfigT], Generic[ActionConfigT, MsgT]):
+    """Adapter for converting action features to a ROS 2 topic message."""
 
     _msg_type: type[MsgT]
 
@@ -74,3 +90,43 @@ class ActionComponent(BaseComponent[ActionConfigT], Generic[ActionConfigT, MsgT]
         """
         msg = self.to_message(action)
         self._publisher.publish(msg)
+
+class ActionClientComponent(ActionComponent[ActionConfigT], Generic[ActionConfigT, MsgT]):
+    """Adapter for converting action features to a ROS 2 action command."""
+
+    _msg_type: type[MsgT]
+
+    def __init__(self, config: ActionConfigT, msg_type: type[MsgT]):
+        super().__init__(config)
+
+        self._msg_type = msg_type
+
+    @abstractmethod
+    def to_goal(self, action: dict[str, Any]) -> Any:
+        """Convert action features to a ROS 2 acton goal.
+
+        Args:
+            action: The action features to convert.
+
+        Returns:
+            The ROS 2 action goal.
+        """
+        raise NotImplementedError
+
+    def connect(self, node: Node) -> None:
+        super().connect(node)
+
+        self._action_client =  ActionClient(node, self._msg_type, self.topic)
+
+    def disconnect(self) -> None:
+        super().disconnect()
+
+    def send_action(self, action: dict[str, Any]) -> None:
+        """Send an action to the ROS 2 action goal.
+
+        Args:
+            action: The action features to send.
+        """
+        goal_msg = self.to_goal(action)
+        # self._action_client.wait_for_server()
+        self._action_client.send_goal_async(goal_msg)

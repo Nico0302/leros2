@@ -13,43 +13,52 @@
 # limitations under the License.
 from dataclasses import dataclass
 
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 from typing import Any
 import numpy as np
 from lerobot.utils.rotation import Rotation
-from leros2.components.common import ActionComponentConfig, ActionComponent
+from leros2.components.common import ActionComponentConfig, ActionTopicComponent
 from leros2.components.common.base import BaseComponentConfig
 
 
 @dataclass
 @BaseComponentConfig.register_subclass('pose_action')
 class PoseActionComponentConfig(ActionComponentConfig):
+    # name to identify the pose component
     name: str
 
+    # ros2 frame id
+    frame_id: str
 
-class PoseActionComponent(ActionComponent[PoseActionComponentConfig, Pose]):
+
+class PoseActionComponent(ActionTopicComponent[PoseActionComponentConfig, PoseStamped]):
     def __init__(self, config: PoseActionComponentConfig):
-        super().__init__(config, Pose)
+        super().__init__(config, PoseStamped)
 
     @property
     def features(self) -> dict[str, type]:
         return {
-            f"{self._config.name}.pos": np.ndarray,  # shape (3,)
-            f"{self._config.name}.rot": Rotation,  # quaternion
+            f"{self._config.name}_x.pos": float,
+            f"{self._config.name}_y.pos": float,
+            f"{self._config.name}_z.pos": float,
+            f"{self._config.name}_x.quat": float,
+            f"{self._config.name}_y.quat": float,
+            f"{self._config.name}_z.quat": float,
+            f"{self._config.name}_w.quat": float,
         }
 
-    def to_message(self, action: dict[str, Any]) -> Pose:
-        msg = Pose()
+    def to_message(self, action: dict[str, Any]) -> PoseStamped:
+        msg = PoseStamped()
 
-        pos: np.ndarray = action[f"{self._config.name}.pos"]
-        msg.position.x = pos[0]
-        msg.position.y = pos[1]
-        msg.position.z = pos[2]
+        msg.header.frame_id = self._config.frame_id
 
-        rot: Rotation = action[f"{self._config.name}.rot"]
-        msg.orientation.x = rot.x
-        msg.orientation.y = rot.y
-        msg.orientation.z = rot.z
-        msg.orientation.w = rot.w
+        msg.pose.position.x = action[f"{self._config.name}_x.pos"]
+        msg.pose.position.y = action[f"{self._config.name}_y.pos"]
+        msg.pose.position.z = action[f"{self._config.name}_z.pos"]
+
+        msg.pose.orientation.x = action[f"{self._config.name}_x.quat"]
+        msg.pose.orientation.y = action[f"{self._config.name}_y.quat"]
+        msg.pose.orientation.z = action[f"{self._config.name}_z.quat"]
+        msg.pose.orientation.w = action[f"{self._config.name}_w.quat"]
 
         return msg

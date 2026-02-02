@@ -13,6 +13,6 @@
 # limitations under the License.
 
 from .base import BaseComponent, BaseComponentConfig
-from .action import ActionComponent, ActionComponentConfig
+from .action import ActionComponent, ActionComponentConfig, ActionTopicComponent, ActionClientComponent
 from .state import StateComponent, StateComponentConfig
 from .base_image import ImageBaseComponent, ImageBaseComponentConfig
