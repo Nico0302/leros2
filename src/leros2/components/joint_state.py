@@ -42,6 +42,27 @@ class JointConfig:
     # Optional name of the joint in the ROS message if it deviates from the LeRobot joint name
     ros_name: str | None = None
 
+    def _clip(self, val, minval, maxval):
+        if val < minval: return minval
+        if val > maxval: return maxval
+        return val
+
+    def unnormalize(
+        self, normalized_value: float
+    ) -> float:
+        """Unnormalize a joint value to radians."""
+
+        return self.range_min + (self._clip(normalized_value, self.norm_min, self.norm_max) - self.norm_min) * (
+            self.range_max - self.range_min
+        ) / (self.norm_max - self.norm_min)
+
+    def normalize(self, unnormalized_value: float) -> float:
+        """Normalize a joint value from radians."""
+
+        return self.norm_min + (self._clip(unnormalized_value, self.range_min, self.range_max) - self.range_min) * (
+            self.norm_max - self.norm_min
+        ) / (self.range_max - self.range_min)
+
 
 @dataclass
 @BaseComponentConfig.register_subclass('joint_state')
@@ -77,16 +98,6 @@ class JointStateComponent(StateComponent[JointStateComponentConfig, JointState])
             if joint_config is None:
                 continue
 
-            value[f"{joint_config.name}.pos"] = self._normalize_joint(
-                msg.position[index],
-                joint_config,
-            )
+            value[f"{joint_config.name}.pos"] = joint_config.normalize(msg.position[index])
 
         return value
-
-    def _normalize_joint(self, value: float, config: JointConfig) -> float:
-        """Normalize a joint value from radians."""
-
-        return config.norm_min + (value - config.range_min) * (
-            config.norm_max - config.norm_min
-        ) / (config.range_max - config.range_min)

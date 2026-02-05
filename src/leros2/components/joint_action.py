@@ -52,15 +52,6 @@ class JointActionComponent(
             if joint_value is None:
                 raise ValueError(f"Joint '{joint.name}' not found in action.")
             msg.joint_names.append(joint.name)
-            msg.points[0].positions.append(self._unnormalize_joint(joint_value, joint))
+            msg.points[0].positions.append(joint.unnormalize(joint_value))
 
         return msg
-
-    def _unnormalize_joint(
-        self, joint_value: float, joint_config: JointConfig
-    ) -> float:
-        """Unnormalize a joint value to radians."""
-
-        return ((joint_value + 1.0) / 2.0) * (
-            joint_config.range_max - joint_config.range_min
-        ) + joint_config.range_min

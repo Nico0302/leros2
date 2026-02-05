@@ -45,6 +45,14 @@ class ParallelGripperActionComponent(ActionClientComponent[ParallelGripperAction
     def to_goal(self, action: dict[str, Any]) -> Any:
         msg = ParallelGripperCommand.Goal()
 
-        # [TODO] implement
+        msg.command.name = []
+        msg.command.position = []
+
+        for joint in self._config.joints:
+            joint_value = action[f"{joint.name}.pos"]
+            if joint_value is None:
+                raise ValueError(f"Gripper Joint '{joint.name}' not found in action.")
+            msg.command.name.append(joint.name)
+            msg.command.position.append(joint.unnormalize(joint_value))
 
         return msg
