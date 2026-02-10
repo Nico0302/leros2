@@ -29,6 +29,7 @@ leros2-convert \
     --teleop.type=pose
 ```
 """
+from functools import cached_property
 from packaging.utils import _
 
 from lerobot.teleoperators.utils import make_teleoperator_from_config
@@ -138,10 +139,12 @@ class RecordConfig:
     teleop: TeleoperatorConfig
     # ROS 2 Event topic
     event_topic: str = "lerobot_event"
-    # ROS 2 Task topic
+    # ROS 2 topic name with task descriptions (eache message will start a new episode in the dataset)
     task_topic: str | None = None
     # ROS 2 Clock topic (used to capture lerobot frames - if None, messages will be sampled at a fixed FPS rate)
     clock_topic: str | None = None
+    # Maximum number of episodes to record
+    max_episodes: int | None = None
     # Display all cameras on screen
     display_data: bool = False
     # Use vocal synthesis to read events.
@@ -150,186 +153,199 @@ class RecordConfig:
     resume: bool = False
 
 
-def typename(topic_name, topic_types):
-    for topic_type in topic_types:
-        if topic_type.name == topic_name:
-            return topic_type.type
-    raise ValueError(f"topic {topic_name} not in bag")
-
-
-@safe_stop_image_writer
-def record_loop(
-    bag_path: str,
-    robot: ROS2Robot,
-    teleop: ROS2Teleoperator,
+class DatasetConverter:
+    
+    robot: ROS2Robot
+    teleop: ROS2Teleoperator
     teleop_action_processor: RobotProcessorPipeline[
         tuple[RobotAction, RobotObservation], RobotAction
-    ],  # runs after teleop
+    ]  # runs after teleop
     robot_observation_processor: RobotProcessorPipeline[
         RobotObservation, RobotObservation
-    ],  # runs after robot
-    dataset: LeRobotDataset,
-    display_data: bool = False,
-    event_topic: str | None = None,
-    task_topic: str | None = None,
-    clock_topic: str | None = None,
-    single_task: str | None = None,
-):
-    """
-    Record a bag file into a dataset.
+    ]  # runs after robot
+    dataset: LeRobotDataset
+    event_topic: str | None = None
+    task_topic: str | None = None
+    clock_topic: str | None = None
+    single_task: str | None = None
+    max_episodes: int | None = None
 
-    For every message in the provided `clock_topic`, the robot state and teleoperation actions are captured inside a new dataset frame.
-    If no topic is provided, 
-    If the provided `task_topic` is not None, the recording will begin when the first message is received on the task topic. Every further message will create a new episode.
-    If the `task_topic` is None, the recording will begin immediately and only one episode will be captured.
-    The `event_topic` is used to read events such as `"exit_early"` and `"rerecord_episode"`.
+    def __init__(self,
+        robot: ROS2Robot,
+        teleop: ROS2Teleoperator,
+        teleop_action_processor: RobotProcessorPipeline[
+            tuple[RobotAction, RobotObservation], RobotAction
+        ],  # runs after teleop
+        robot_observation_processor: RobotProcessorPipeline[
+            RobotObservation, RobotObservation
+        ],  # runs after robot
+        dataset: LeRobotDataset,
+        event_topic: str | None = None,
+        task_topic: str | None = None,
+        clock_topic: str | None = None,
+        single_task: str | None = None,
+        max_episodes: int | None = None,
+    ):
+        self.robot = robot
+        self.teleop = teleop
+        self.teleop_action_processor = teleop_action_processor
+        self.robot_observation_processor = robot_observation_processor
+        self.dataset = dataset
+        self.event_topic = event_topic
+        self.task_topic = task_topic
+        self.clock_topic = clock_topic
+        self.single_task = single_task
+        self.max_episodes = max_episodes
 
-    Args:
-        bag_path: Path to the bag file to record.
-        robot: ROS2 robot to record.
-        teleop: ROS2 teleoperator to record.
-        teleop_action_processor: ROS2 teleoperator action processor.
-        robot_observation_processor: ROS2 robot observation processor.
-        dataset: Dataset to record into.
-        display_data: Whether to display the data.
-        clock_topic: Clock topic to use.
-        event_topic: Event topic to use.
-        task_topic: Task topic to use. If None, the recording will begin immediately.
-        single_task: Default task to use if no task is received on the task topic.
-    """
-    reader = rosbag2_py.SequentialReader()
-    reader.open(
-        rosbag2_py.StorageOptions(uri=bag_path, storage_id="mcap"),
-        rosbag2_py.ConverterOptions(
-            input_serialization_format="cdr", output_serialization_format="cdr"
-        ),
-    )
+    _raw_topic_data: dict[str, Any] = {}
+    _parsed_topic_data: dict[str, Any] = {}
+    _task: str | None = None
+    _is_recording = False
+    _has_frame = False
+    _last_timestamp = 0
+    _tasked_received = task_topic is None
+    _num_episodes = 0
+    _topic_types = []
 
-    topic_types = reader.get_all_topics_and_types()
+    def _typename(self, topic_name):
+        for topic_type in self._topic_types:
+            if topic_type.name == topic_name:
+                return topic_type.type
+        raise ValueError(f"topic {topic_name} not in bag")
 
-    topics = [
-        event_topic,
-        *robot.subscription_topics,
-        *teleop.subscription_topics,
-    ]
-    if task_topic is not None:
-        topics.append(task_topic)
-    if clock_topic is not None:
-        topics.append(clock_topic)
-    reader.set_filter(rosbag2_py.StorageFilter(topics=topics))
-
-    print("meta", reader.get_metadata())
-
-    raw_topic_data: dict[str, Any] = {}
-    parsed_topic_data: dict[str, Any] = {}
-
-    task = single_task
-
-    is_recording = False
-    is_saved = False
-
-    last_timestamp = 0
-
-    has_frame = False
-
-    tasked_received = task_topic is None
-
-    def deserialize_data(topic, data):
-        msg_type = get_message(typename(topic, topic_types))
+    def _deserialize_data(self, topic, data):
+        msg_type = get_message(self._typename(topic))
         return deserialize_message(data, msg_type)
 
-    while reader.has_next():
-        topic, data, timestamp = reader.read_next()
+    def _save_episode(self):
+        if not self._is_recording or not self._has_frame:
+            return
+        self.dataset.save_episode()
+        self._num_episodes += 1
+        self._last_timestamp = 0
+        self._has_frame = False
+        self._raw_topic_data.clear()
+        self._parsed_topic_data.clear()
 
-        # store raw message in raw_topic_data
-        raw_topic_data[topic] = data
-        parsed_topic_data.pop(topic, None)
+    @cached_property
+    def topics(self) -> list[str]:
+        return [
+            t
+            for t in [
+                *self.robot.subscription_topics,
+                *self.teleop.subscription_topics,
+                self.event_topic,
+                self.task_topic,
+                self.clock_topic,
+            ]
+            if t is not None
+        ]
 
-        if topic == event_topic and event_topic is not None:
-            msg = deserialize_data(topic, data)
-            match msg.data:
-                case "exit_early":
-                    if is_recording and has_frame:
-                        dataset.save_episode()
-                        has_frame = False
-                    is_recording = False
-                    tasked_received = False
-                    is_saved = True
-                    last_timestamp = 0
-                    continue
-                case "rerecord_episode":
-                    if dataset is not None:
-                        dataset.clear_episode_buffer()
-                    is_recording = True
-                    last_timestamp = 0
-                    continue
-                case _:
-                    continue
-
-        if task_topic is not None and topic == task_topic:
-            # receive a new task to record
-            msg = deserialize_data(topic, data)
-            if single_task is None:
-                task = msg.data
-            print("task")
-            if is_recording and not is_saved and has_frame:
-                # save the previous episode
-                dataset.save_episode()
-                is_saved = True
-                has_frame = False
-            tasked_received = True
-            last_timestamp = 0
-            continue
-
-        # only record a new frame when the clock topic is received or the FPS threshold is reached
-        if not is_recording:
-            if tasked_received and all(t in raw_topic_data for t in topics if t != event_topic):
-                # if no task_topic is provided, recording starts when all topics are saturated
-                is_recording = True
-            else:
-                continue
-
-        if clock_topic is not None and topic != clock_topic:
-            continue
-
-        if clock_topic is None:
-            if (timestamp - last_timestamp) < (10e8 // dataset.fps):
-                continue
-            last_timestamp = timestamp
-
-        for t, data in raw_topic_data.items():
-            if t not in parsed_topic_data:
-                parsed_topic_data[t] = deserialize_data(t, data)
-
-        # Get robot observation
-        obs = robot.get_state_from_topics(parsed_topic_data)
-
-        # Applies a pipeline to the raw robot observation, default is IdentityProcessor
-        obs_processed = robot_observation_processor(obs)
-
-        observation_frame = build_dataset_frame(
-            dataset.features, obs_processed, prefix=OBS_STR
+    def convert(self, bag_path: str):
+        reader = rosbag2_py.SequentialReader()
+        reader.open(
+            rosbag2_py.StorageOptions(uri=bag_path, storage_id="mcap"),
+            rosbag2_py.ConverterOptions(
+                input_serialization_format="cdr", output_serialization_format="cdr"
+            ),
         )
+        reader.set_filter(rosbag2_py.StorageFilter(topics=self.topics))
 
-        # Get action from teleop
-        act = teleop.get_state_from_topics(parsed_topic_data)
+        self._topic_types = reader.get_all_topics_and_types()
+        self._task = self.single_task
 
-        # Applies a pipeline to the action, default is IdentityProcessor
-        action_values = teleop_action_processor((act, obs))
+        try:
+            while reader.has_next():
+                if self.max_episodes and self._num_episodes >= self.max_episodes:
+                    return
 
-        # Write to dataset
-        action_frame = build_dataset_frame(
-            dataset.features, action_values, prefix=ACTION
-        )
-        frame = {**observation_frame, **action_frame, "task": task}
+                topic, data, timestamp = reader.read_next()
 
-        dataset.add_frame(frame)
-        has_frame = True
+                self._raw_topic_data[topic] = data
+                self._parsed_topic_data.pop(topic, None) # Removed parsed message from cache
 
-        is_saved = False
+                # Check for task messages
+                if self.task_topic is not None and topic == self.task_topic:
+                    # Receive a new task to record
+                    msg = self._deserialize_data(topic, data)
+                    if self.single_task is None:
+                        task = msg.data
+                    print(f"episode {self._num_episodes}")
+                    # Save the previous episode (if recorded)
+                    self._save_episode()
+                    self._tasked_received = True
+                    continue
 
-    if is_recording and not is_saved and has_frame:
-        dataset.save_episode()
+                # Check for event messages
+                if self.event_topic is not None and topic == self.event_topic:
+                    msg = self._deserialize_data(topic, data)
+                    match msg.data:
+                        case "exit_early":
+                            self._save_episode()
+                            self._is_recording = False
+                            self._tasked_received = False
+                            continue
+                        case "rerecord_episode":
+                            self._save_episode()
+                            continue
+                        case _:
+                            continue
+
+                if not self._is_recording:
+                    if self._tasked_received and all(t in self._raw_topic_data for t in self.topics if t != self.event_topic and t != self.task_topic):
+                        # Only start recording after all topics received a message
+                        self._is_recording = True
+                    else:
+                        continue
+
+                if self.clock_topic is None:
+                    # Trigger a new frame after a certain time delta
+                    if (timestamp - self._last_timestamp) < (10e8 // self.dataset.fps):
+                        continue
+                    self._last_timestamp = timestamp
+                else:
+                    # Trigger a new frame on every clock topic message
+                    if topic != self.clock_topic:
+                        continue
+
+                # Parse all messages for the new frame
+                for t, data in self._raw_topic_data.items():
+                    if t not in self._parsed_topic_data:
+                        self._parsed_topic_data[t] = self._deserialize_data(t, data)
+
+                # Get robot observation
+                obs = self.robot.get_state_from_topics(self._parsed_topic_data)
+
+                # Applies a pipeline to the raw robot observation, default is IdentityProcessor
+                obs_processed = self.robot_observation_processor(obs)
+
+                observation_frame = build_dataset_frame(
+                    self.dataset.features, obs_processed, prefix=OBS_STR
+                )
+
+                # Get action from teleop
+                act = self.teleop.get_state_from_topics(self._parsed_topic_data)
+
+                # Applies a pipeline to the action, default is IdentityProcessor
+                action_values = self.teleop_action_processor((act, obs))
+
+                # Write to dataset
+                action_frame = build_dataset_frame(
+                    self.dataset.features, action_values, prefix=ACTION
+                )
+                frame = {**observation_frame, **action_frame, "task": self._task}
+
+                self.dataset.add_frame(frame)
+                self._has_frame = True
+
+            if self._has_frame:
+                self._save_episode()
+
+        except Exception as e:
+            if self.dataset.image_writer is not None:
+                print("Waiting for image writer to terminate...")
+                self.dataset.image_writer.stop()
+            raise e
 
 
 @parser.wrap()
@@ -392,7 +408,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset | None:
             root = Path(cfg.dataset.root) if cfg.dataset.root is not None else HF_LEROBOT_HOME / cfg.dataset.repo_id
 
 
-            if os.path.exists(root):
+            if os.path.exists(root) and not cfg.resume:
                 if input("Dataset already exists locally. Do you want to *overwrite* it? [y/N]: ").lower() == "y":
                     rmtree(root)
                 else:
@@ -417,19 +433,19 @@ def record(cfg: RecordConfig) -> LeRobotDataset | None:
             teleop.connect()
 
         with VideoEncodingManager(dataset):
-            record_loop(
-                bag_path=cfg.bag_path,
+            converter = DatasetConverter(
                 robot=robot,
                 teleop=teleop,
                 teleop_action_processor=teleop_action_processor,
                 robot_observation_processor=robot_observation_processor,
                 dataset=dataset,
-                display_data=cfg.display_data,
                 clock_topic=cfg.clock_topic,
                 event_topic=cfg.event_topic,
                 task_topic=cfg.task_topic,
                 single_task=cfg.dataset.single_task,
+                max_episodes=cfg.max_episodes
             )
+            converter.convert(bag_path=cfg.bag_path)
     finally:
         log_say("Conversion finished", cfg.play_sounds, blocking=True)
 
