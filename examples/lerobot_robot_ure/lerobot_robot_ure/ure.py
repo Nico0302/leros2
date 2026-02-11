@@ -1,4 +1,4 @@
-# Copyright 2025 Nicolas Gres
+# Copyright 2026 Nicolas Gres
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from leros2.components.wrench_state import WrenchStateComponent, WrenchStateComponentConfig
 from leros2.components.parallel_gripper_action import ParallelGripperActionComponentConfig, ParallelGripperActionComponent
 
 from leros2.components.pose_action import PoseActionComponent, PoseActionComponentConfig
@@ -82,17 +84,27 @@ class URe(ROS2Robot):
         super().__init__(
             config,
             [
+                # End-Effector Pose 
                 PoseStateComponent(
                     PoseStateComponentConfig(
                         topic=config.pose_state_topic,
                         name="pose"
                     )
                 ),
-                JointStateComponent(  # Read joint states
+                # Joint States
+                JointStateComponent(
                     JointStateComponentConfig(
                         topic=config.joint_state_topic, joints=joints
                     )
                 ),
+                # End-Effector Wrench
+                WrenchStateComponent(
+                    WrenchStateComponentConfig(
+                        topic=config.wrench_state_topic,
+                        name="wrench"
+                    )
+                ),
+                # Camera Images
                 CompressedImageComponent(
                     CompressedImageComponentConfig(
                         topic=config.base_image_topic, 
@@ -109,7 +121,7 @@ class URe(ROS2Robot):
                         height=480
                     )
                 ),
-                # actions
+                # Actions
                 PoseActionComponent(
                     PoseActionComponentConfig(
                         topic=config.pose_action_topic,
@@ -117,6 +129,12 @@ class URe(ROS2Robot):
                         name="pose"
                     )
                 ),
+                # - or -
+                # JointActionComponent(
+                #     JointActionComponentConfig(
+                #         topic=config.joint_trajectory_topic, joints=joints
+                #     )
+                # ),
                 ParallelGripperActionComponent(
                     ParallelGripperActionComponentConfig(
                         topic=config.gripper_action_topic,
@@ -130,11 +148,5 @@ class URe(ROS2Robot):
                         ]
                     )
                 ),
-                # - or -
-                # JointActionComponent(
-                #     JointActionComponentConfig(
-                #         topic=config.joint_trajectory_topic, joints=joints
-                #     )
-                # ),
             ],
         )

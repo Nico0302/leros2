@@ -1,5 +1,5 @@
 # Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-# Copyright 2025 Nicolas Gres
+# Copyright 2026 Nicolas Gres
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -97,8 +97,6 @@ from rclpy.serialization import deserialize_message  # ty:ignore[unresolved-impo
 class DatasetRecordConfig:
     # Dataset identifier. By convention it should match '{hf_username}/{dataset_name}' (e.g. `lerobot/test`).
     repo_id: str
-    # A short but accurate description of the task performed during the recording (e.g. "Pick the Lego block and drop it in the box on the right.")
-    single_task: str
     # Root directory where the dataset will be stored (e.g. 'dataset/path').
     root: str | Path | None = None
     # Limit the frames per second.
@@ -109,6 +107,8 @@ class DatasetRecordConfig:
     push_to_hub: bool = True
     # Upload on private repository on the Hugging Face hub.
     private: bool = False
+    # A short but accurate description of the task performed during the recording (e.g. "Pick the Lego block and drop it in the box on the right.")
+    single_task: str | None = None
     # Add tags to your dataset on the hub.
     tags: list[str] | None = None
     # Number of subprocesses handling the saving of frames as PNG. Set to 0 to use threads only;
@@ -154,7 +154,7 @@ class RecordConfig:
 
 
 class DatasetConverter:
-    
+
     robot: ROS2Robot
     teleop: ROS2Teleoperator
     teleop_action_processor: RobotProcessorPipeline[
@@ -224,6 +224,7 @@ class DatasetConverter:
         self._num_episodes += 1
         self._last_timestamp = 0
         self._has_frame = False
+        self._is_recording = False
         self._raw_topic_data.clear()
         self._parsed_topic_data.clear()
 
@@ -270,7 +271,7 @@ class DatasetConverter:
                     msg = self._deserialize_data(topic, data)
                     if self.single_task is None:
                         task = msg.data
-                    print(f"episode {self._num_episodes}")
+                    print(f"episode {self._num_episodes} - new task: {task}")
                     # Save the previous episode (if recorded)
                     self._save_episode()
                     self._tasked_received = True
@@ -282,10 +283,10 @@ class DatasetConverter:
                     match msg.data:
                         case "exit_early":
                             self._save_episode()
-                            self._is_recording = False
                             self._tasked_received = False
                             continue
                         case "rerecord_episode":
+                            print("Rerecording episode...")
                             self._save_episode()
                             continue
                         case _:
@@ -409,7 +410,7 @@ def record(cfg: RecordConfig) -> LeRobotDataset | None:
 
 
             if os.path.exists(root) and not cfg.resume:
-                if input("Dataset already exists locally. Do you want to *overwrite* it? [y/N]: ").lower() == "y":
+                if input("Dataset already exists locally. Do you want to overwrite it [y/N]? ").lower() == "y":
                     rmtree(root)
                 else:
                     log_say("Conversion aborted", False, blocking=False)

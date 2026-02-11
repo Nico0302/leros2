@@ -1,6 +1,10 @@
 # ROS 2 LeRobot
 
-Map [ROS 2](https://www.ros.org/) topics and actions to [LeRobot](https://github.com/huggingface/lerobot) robots and teleoperators.
+Integrate any [ROS 2](https://www.ros.org/) robot or teleoperation device with [LeRobot](https://github.com/huggingface/lerobot). LeROS2 allows you to record and control robots using joint positions, end-effector poses, joint torques or cartesian wrench actions. The framework aims to be compleatly composable to allow the combination of one or more robot arms width different cameras and grippers.
+
+🦾 Customizable joint positin/torque or end-effector pose/wrench support
+🧩 Composable design be defining robot components (mapping between ROS 2 topics/actions and LeRobot features)
+📼 Convert ROS 2 bags into LeRobot datasets 
 
 ## Quick Start
 
@@ -126,12 +130,9 @@ ROS 2 messages need to be quantized into dataset frames. This can be done using 
 - `--dataset.fps`: Use a fixed FPS rate to capture frames.
 - `--clock_topic`: Use a ROS 2 topic to capture frames every time a message is published. (`--dataset.fps` should also be specified to populate the FPS metadata)
 
-> [!IMPORTANT]
-> Make sure your camera topic publish frequency and dataset FPS are the same. Ideally the camera topic should be used as the clock topic to allign properioceptive and image observations.
-
 ### Multi Episode Example
 
-If multiple episodes are performed during the recording a `task_topic` should be specified. After each string message published with the tasked description the converter will create a new episode. If no `task_topic` is specified, only one episode will be created, starting after all required topics are recieved atleast once.
+If multiple episodes are performed during the recording a `task_topic` should be specified. After each string message published with the task description the converter will create a new episode. If no `task_topic` is specified, only one episode will be created.
 
 ```shell
 leros2-convert \
@@ -143,3 +144,5 @@ leros2-convert \
     --teleop.type=ure \
     --teleop.id=blue
 ```
+
+Checkout `leros2-convert --help` for more command options.

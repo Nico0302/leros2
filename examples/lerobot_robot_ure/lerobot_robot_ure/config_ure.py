@@ -25,6 +25,8 @@ class UReConfig(ROS2RobotConfig):
     joint_state_topic: str = "/joint_states"
 
     pose_state_topic: str = "/current_pose"
+    
+    wrench_state_topic: str = "/force_torque_sensor_broadcaster/wrench"
 
     gripper_action_topic: str = "/robotiq_gripper_controller/gripper_cmd"
 
